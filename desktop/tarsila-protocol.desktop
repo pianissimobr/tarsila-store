@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Tarsila Store Handler
+Comment=Instala pacotes solicitados pela Tarsila Store
+Exec=/opt/tarsila-store/tarsila-store-handler.sh %u
+MimeType=x-scheme-handler/tarsila;
+NoDisplay=true
+Terminal=false

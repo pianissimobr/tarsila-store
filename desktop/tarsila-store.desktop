@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Tarsila Store
+Comment=Instale aplicativos e jogos
+Exec=/usr/bin/tarsila-store
+Icon=tarsila-store
+Categories=System;PackageManager;
+Terminal=false
+StartupNotify=true
+StartupWMClass=tarsila-store

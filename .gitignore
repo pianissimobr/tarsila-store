@@ -1,0 +1,12 @@
+# pacotes construidos
+dist/
+*.deb
+
+# lixo do Python
+__pycache__/
+*.py[cod]
+
+# lixo de editor e de sistema
+*~
+.*.swp
+.DS_Store

@@ -1,0 +1,65 @@
+#!/bin/bash
+# Instala/remove pacotes da whitelist da Tarsila Store e mantém os atalhos
+# curados sincronizados via tarsila-atalho-criar (fornecido pelo
+# tarsila-app-management, em /usr/local/bin). Roda como root via
+# sudo NOPASSWD (ver /etc/sudoers.d/tarsila-store, chamado pela
+# tarsila-store-gtk.py) — por isso a criação dos atalhos mora num script
+# separado e não na interface, que roda como usuário comum e não tem
+# escrita em /usr/share.
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+
+ACAO="${1:-}"; PKG="${2:-}"
+WHITELIST="/opt/tarsila-store/whitelist.txt"
+LOG="/var/log/tarsila-store.log"
+TARSILA_APPS="/usr/share/tarsila/applications"
+TARSILA_GAMES="/usr/share/tarsila/games"
+TARSILA_ICONS="/usr/share/tarsila/icons"
+ATALHO_CRIAR="/usr/local/bin/tarsila-atalho-criar"
+
+erro(){ echo "tarsila-pkg: $1" >&2; echo "$(date -Is) RECUSADO $ACAO $PKG ($1)" >> "$LOG" 2>/dev/null || true; exit 1; }
+[[ "$ACAO" == "install" || "$ACAO" == "remove" ]] || erro "ação inválida"
+[[ "$PKG" =~ ^[a-z0-9][a-z0-9+._-]*$ ]]           || erro "nome de pacote inválido"
+grep -qxF "$PKG" "$WHITELIST" 2>/dev/null          || erro "pacote fora da whitelist"
+echo "$(date -Is) INICIO $ACAO $PKG" >> "$LOG" 2>/dev/null || true
+
+remover_atalhos() {
+  # $1 = lista de nomes de .desktop (um por linha), capturada ANTES do
+  # apt remove (depois o dpkg -L do pacote já não existe mais).
+  local nome
+  while IFS= read -r nome; do
+    [ -n "$nome" ] || continue
+    rm -f "$TARSILA_APPS/$nome" "$TARSILA_GAMES/$nome"
+  done <<< "$1"
+  rm -f "$TARSILA_ICONS/$PKG".* 2>/dev/null || true
+}
+
+if [[ "$ACAO" == "install" ]]; then
+  apt-get install -y --no-install-recommends "$PKG"
+  "$ATALHO_CRIAR" "$PKG" >/dev/null || true   # atalho é cortesia; instalação já deu certo
+else
+  nomes_desktop="$(dpkg -L "$PKG" 2>/dev/null | grep -E "^/usr/share/applications/.*\.desktop$" | xargs -n1 basename 2>/dev/null || true)"
+  # Atalhos curados provisionados com nome próprio (ex.:
+  # galculator-tarsila.desktop) não casam com os basenames do dpkg -L
+  # acima e ficariam órfãos no AppFinder. Identifica-os pelo binário do
+  # Exec= ANTES do remove (depois o binário e o dpkg -S já não existem).
+  curados_do_pacote="$(
+    for f in "$TARSILA_APPS"/*.desktop "$TARSILA_GAMES"/*.desktop; do
+      [ -e "$f" ] || continue
+      cmd="$(sed -n 's/^Exec=//p' "$f" | head -n1 | cut -d' ' -f1)"
+      [ -n "$cmd" ] || continue
+      caminho="$(command -v "$cmd" 2>/dev/null || true)"
+      [ -n "$caminho" ] || continue
+      dono="$(dpkg -S "$caminho" 2>/dev/null | cut -d: -f1 | head -n1)"
+      if [ "$dono" = "$PKG" ]; then echo "$f"; fi
+    done
+    true
+  )"
+  apt-get remove -y "$PKG"
+  remover_atalhos "$nomes_desktop" || true
+  while IFS= read -r f; do
+    if [ -n "$f" ]; then rm -f "$f"; fi
+  done <<< "$curados_do_pacote"
+fi
+
+echo "$(date -Is) OK $ACAO $PKG" >> "$LOG" 2>/dev/null || true
