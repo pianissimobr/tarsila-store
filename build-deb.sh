@@ -20,7 +20,6 @@ mkdir -p "$DEST" \
          "$STAGE/DEBIAN" \
          "$STAGE/opt/tarsila-store/bin" \
          "$STAGE/opt/tarsila-store/loja" \
-         "$STAGE/opt/tarsila-store/motor" \
          "$STAGE/usr/local/lib/tarsila" \
          "$STAGE/usr/bin" \
          "$STAGE/usr/share/applications" \
@@ -55,14 +54,13 @@ ln -sf /opt/tarsila-store/bin/tarsila-store-gtk.py "$STAGE/usr/bin/tarsila-store
 install -m 644 "$AQUI/desktop/appstore.png" \
                "$STAGE/usr/share/icons/hicolor/256x256/apps/tarsila-store.png"
 
-# --- motor de fallback (headless) --------------------------------------
-# Se o tarsila-app-management nao estiver instalado, o postinst instala
-# estes helpers headless a partir daqui, SEM a resolucao grafica que o
-# app-management traz junto (appfinder-yad, deb-gui).
-install -m 755 "$AQUI/motor/tarsila-atalho-criar" \
-               "$STAGE/opt/tarsila-store/motor/tarsila-atalho-criar"
-install -m 755 "$AQUI/motor/tarsila-app-uninstall.sh" \
-               "$STAGE/opt/tarsila-store/motor/tarsila-app-uninstall.sh"
+# --- o motor NAO mora mais aqui ----------------------------------------
+# Ate 16/08/2026 este repositorio carregava em motor/ uma copia propria do
+# tarsila-atalho-criar e do tarsila-app-uninstall.sh, instalada pelo postinst
+# quando o tarsila-app-management estava ausente. As duas copias envelheceram
+# separado e divergiram: a correcao que fez a desinstalacao pedir a senha, em
+# vez de falhar calada com "sudo -n", entrou no app-management e nao aqui.
+# Agora o motor e o pacote tarsila-motor, declarado em Depends. Uma fonte so.
 
 # --- sudoers (tarsila-pkg so roda com NOPASSWD; ALL = qualquer usuario) -
 install -m 440 "$AQUI/etc/sudoers.d/tarsila-store" \
@@ -85,18 +83,22 @@ Version: $VER
 Section: utils
 Priority: optional
 Architecture: all
-Depends: python3, python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, sudo
+Depends: tarsila-motor (>= 1.0.0), python3, python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, sudo
 Recommends: libnotify-bin, policykit-1, yad
-Maintainer: Tarsila OS <tarsila@local>
+Maintainer: Piano Lab Ribeirao <adm@pianolabribeirao.com.br>
+Homepage: https://pianolabribeirao.com.br
 Description: Loja de aplicativos do Tarsila OS
  Interface nativa em GTK3 para instalar e remover aplicativos e jogos de uma
  lista curada. Sem WebKit e sem servidor HTTP em processo separado: um unico
  processo Python, pensado para maquina de 2 GB de RAM.
  .
  A instalacao em si passa pelo tarsila-pkg, que so aceita pacotes da
- whitelist -- a loja nunca chama o apt diretamente. Se o tarsila-app-management
- estiver instalado, a loja usa os helpers dele; se nao, o postinst instala o
- "motor" headless (atalho curado + desinstalador) sem a interface grafica.
+ whitelist -- a loja nunca chama o apt diretamente.
+ .
+ Os atalhos curados (criar ao instalar, remover ao desinstalar) vem do
+ tarsila-motor, de que este pacote depende. A interface grafica de
+ gerenciamento -- o AppFinder e o instalador de .deb por duplo clique -- e
+ opcional e vem no tarsila-app-management.
 EOF
 
 cat > "$STAGE/DEBIAN/postinst" <<'EOF'
@@ -109,14 +111,6 @@ gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
 pkill -f /opt/tarsila-store/bin/tarsila-backend.py 2>/dev/null || true
 # Falha fechada: se a regra de sudoers nao validar, a loja nao instala nada.
 visudo -c >/dev/null 2>&1 || echo "AVISO: sudoers invalido — a loja nao vai conseguir instalar" >&2
-# Se o tarsila-app-management nao esta instalado, instala o "motor" headless
-# (criacao de atalho curado + desinstalador) que a loja precisa, sem a
-# resolucao grafica do app-management (appfinder-yad, deb-gui).
-if ! command -v tarsila-atalho-criar >/dev/null 2>&1; then
-  install -m 755 /opt/tarsila-store/motor/tarsila-atalho-criar /usr/local/bin/tarsila-atalho-criar
-  install -m 755 /opt/tarsila-store/motor/tarsila-app-uninstall.sh /usr/local/bin/tarsila-app-uninstall.sh
-  echo "tarsila-store: tarsila-app-management ausente — instalado o motor headless."
-fi
 exit 0
 EOF
 chmod 755 "$STAGE/DEBIAN/postinst"
