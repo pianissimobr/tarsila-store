@@ -734,7 +734,7 @@ class Loja(Gtk.Window):
 def main():
     GLib.set_application_name("Tarsila Store")
     try:
-        Gdk.set_program_class("tarsila-store")   # WM_CLASS para a polybar
+        Gdk.set_program_class("tarsila-store")   # WM_CLASS (janelas/Openbox)
     except Exception:
         pass
     janela = Loja()

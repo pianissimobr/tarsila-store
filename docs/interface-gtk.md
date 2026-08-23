@@ -87,7 +87,7 @@ O `postinst` encerra qualquer `tarsila-backend.py` que tenha ficado de uma sess�
 | Grade de Jogos + chips | ✅ 50 jogos, 8 filtros |
 | Busca "tux" | ✅ 7 títulos |
 | Modal | ✅ capa, selos, botões, comando |
-| `WM_CLASS` | `tarsila-store` — integra com a polybar |
+| `WM_CLASS` | `tarsila-store` — integra com o Openbox/window manager |
 | Erros no log | nenhum |
 
 ## Falta ver na TV
