@@ -214,6 +214,28 @@ def instalados():
     return achados
 
 
+def instalados_async(quando_terminar):
+    """Igual ao instalados(), mas fora da linha da interface.
+
+    O dpkg-query custa ~80 ms nesta TV box (medido). Chamado direto, prende
+    o laco do GTK por esse tempo -- e a Loja re-varre o dpkg de minuto em
+    minuto, para perceber o que o usuario instalou por fora. O congelamento
+    caia justo em cima de quem estivesse rolando a lista.
+
+    Mesma convencao do executar() logo acima: o retorno vem de DENTRO da
+    thread, e quem chama volta para a linha da interface com GLib.idle_add
+    antes de encostar em widget.
+    """
+    def trabalho():
+        try:
+            achados = instalados()
+        except Exception:
+            achados = None          # None = "nao consegui", diferente de "nenhum"
+        quando_terminar(achados)
+
+    threading.Thread(target=trabalho, daemon=True).start()
+
+
 def tarefa_de(pkg):
     with _lock:
         return dict(_tarefas.get(pkg, {}))

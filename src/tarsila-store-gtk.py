@@ -677,8 +677,22 @@ class Loja(Gtk.Window):
         self._repinta()
 
     def _sincroniza_periodico(self):
-        self._sincroniza()
+        """Re-varredura de minuto em minuto, sem prender a interface.
+
+        Ver dados.instalados_async: o dpkg-query custa ~80 ms aqui, e ate
+        24/08/2026 isso era gasto na linha do GTK -- uma engasgada por minuto
+        em quem estivesse rolando a lista.
+        """
+        dados.instalados_async(
+            lambda achados: GLib.idle_add(self._chegou_instalados, achados))
         return True
+
+    def _chegou_instalados(self, achados):
+        """De volta na linha da interface, com o resultado da thread."""
+        if achados is not None:      # None = a varredura falhou; mantem o que havia
+            self.instalados = achados
+            self._repinta()
+        return False
 
     def _repinta(self):
         vivos = []
