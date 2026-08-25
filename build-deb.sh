@@ -8,7 +8,7 @@
 # Uso: bash build-deb.sh [pasta-de-destino]     # padrao: ./dist
 set -euo pipefail
 
-VER="4.0.0"
+VER="1.0.0"
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 DEST="${1:-$AQUI/dist}"
 STAGE="$(mktemp -d)/tarsila-store-${VER}"
