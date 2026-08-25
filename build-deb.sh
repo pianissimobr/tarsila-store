@@ -33,6 +33,12 @@ mkdir -p "$DEST" \
 cp -a "$AQUI/loja/." "$STAGE/opt/tarsila-store/loja/"
 install -m 644 "$AQUI/whitelist.txt" "$STAGE/opt/tarsila-store/whitelist.txt"
 
+# --- licenca ------------------------------------------------------------
+# /usr/share/doc/<pkg>/copyright e onde a convencao Debian manda o aviso de
+# licenca ficar. Este build lista arquivo por arquivo, entao precisa ser dito.
+install -D -m 644 "$AQUI/src/usr/share/doc/tarsila-store/copyright" \
+                  "$STAGE/usr/share/doc/tarsila-store/copyright"
+
 # --- backend (motor da loja) -------------------------------------------
 # tarsila-atalho-criar, tarsila-deb-instalar e tarsila-deb-gui.py vivem no
 # tarsila-app-management; aqui so o tarsila-pkg (whitelist + apt) e o
